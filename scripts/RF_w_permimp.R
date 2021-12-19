@@ -68,8 +68,19 @@ for(i in 1:10){
 # get rmse
 for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
 
-# Spearman's rho
+# Spearman's rho in training data
 cor.test(rf.list[[6]]$predicted, rf.list[[6]]$y, method = "spearman")
+
+# Spearman's rho in test data
+cor.test(rf.list[[6]]$pred.newdata, rf.list[[6]]$testdata$log_incidence, method = "spearman")
+# to get the Spearman's rho for the full data
+all.pred<- cbind(unlist(lapply(rf.list, function(x) x$pred.newdata)))
+all.log_incidence<- cbind(unlist(lapply(rf.list, function(x) x$testdata$log_incidence)))
+
+pred_inc<- lapply(rf.list, function(x) cbind("pred"=x$pred.newdata, "incidence"= x$testdata$log_incidence))
+pred_inc_mat<- do.call(rbind, pred_inc)
+cor.test(pred_inc_mat[,1], pred_inc_mat[,2], method = "spearman")
+
 
 
 incidence_predict<- data.table()
