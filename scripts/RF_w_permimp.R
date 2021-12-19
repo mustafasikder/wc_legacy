@@ -30,19 +30,20 @@ dist_df$log_incidence<- log10(dist_df$incidence_in_thousan)
 #                              "Unimproved Sanitation")
 
 dist_df<- dist_df[complete.cases(dist_df), ]
-model_df<- dist_df[,c(10:17, 21)]
 
-# --------------- 10 fold cross-validation -------------
+###############################################################################
+################ incidence model with 10 fold cross-validation ################
+###############################################################################
 # from https://stats.stackexchange.com/questions/61090/how-to-split-a-data-set-to-do-10-fold-cross-validation
-cv_df<- dist_df[sample(nrow(dist_df)),]
-cv_df<- cv_df[,c(10:17, 21)]
+
+incidence_df<- dist_df[,c(10:17, 21)]
+set.seed(123)
+cv_df<- incidence_df[sample(nrow(incidence_df)),]
 folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
 
 test.list<- list()
 train.list<- list()
 rf.list<- list()
-
-#set.seed(123)
 
 for(i in 1:10){
   testIndexes <- which(folds==i,arr.ind=TRUE)
