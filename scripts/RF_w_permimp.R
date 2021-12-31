@@ -17,6 +17,8 @@ theme_update(legend.position = "bottom")
 options(ggplot2.continuous.colour="viridis")
 options(ggplot2.continuous.fill = "viridis")
 
+options(digits=2)
+
 
 dist_df<- readRDS("results/dist_df.rds")
 dist_df$log_incidence<- log10(dist_df$incidence_in_thousan)
@@ -63,16 +65,20 @@ for(i in 1:10){
   rf.list[[i]]$pred.newdata<- predict(rf, newdata = testData)
   rf.list[[i]]$testdata<- testData
   rf.list[[i]]$rmse<- mean((predict(rf, newdata = testData)-testData$log_incidence)^2)^0.5
+  rf.list[[i]]$perImp<- permimp::permimp(rf.list[[i]], conditional = T, do_check = FALSE)
 }
 
 # get rmse
 for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+# combined rmse
+for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+(sum(unlist(lapply(rf.list, function(x) (x$rmse)^2)))/10)^.5
 
 # Spearman's rho in training data
-cor.test(rf.list[[6]]$predicted, rf.list[[6]]$y, method = "spearman")
+# cor.test(rf.list[[6]]$predicted, rf.list[[6]]$y, method = "spearman")
 
 # Spearman's rho in test data
-cor.test(rf.list[[6]]$pred.newdata, rf.list[[6]]$testdata$log_incidence, method = "spearman")
+# cor.test(rf.list[[6]]$pred.newdata, rf.list[[6]]$testdata$log_incidence, method = "spearman")
 # to get the Spearman's rho for the full data
 all.pred<- cbind(unlist(lapply(rf.list, function(x) x$pred.newdata)))
 all.log_incidence<- cbind(unlist(lapply(rf.list, function(x) x$testdata$log_incidence)))
@@ -80,6 +86,10 @@ all.log_incidence<- cbind(unlist(lapply(rf.list, function(x) x$testdata$log_inci
 pred_inc<- lapply(rf.list, function(x) cbind("pred"=x$pred.newdata, "incidence"= x$testdata$log_incidence))
 pred_inc_mat<- do.call(rbind, pred_inc)
 cor.test(pred_inc_mat[,1], pred_inc_mat[,2], method = "spearman")
+
+# permutation variable importance 
+perImp<- t(rbind(sapply(rf.list, function(x) x$perImp$values)))
+fwrite(perImp, file= "results/IncidencePermutationImportance10Fold.csv")
 
 
 
@@ -92,6 +102,25 @@ for (i in 1:length(rf.list)){
                                    rf.list[[i]]$pred.newdata, rf.list[[i]]$testdata$log_incidence),]
   full.incidence.data<- rbind(full.incidence.data, temp)
 }
+
+
+# ----------------- Incidence data full model ----------------
+
+rf_full<- randomForest(
+  log_incidence~.,
+  data = incidence_df,
+  ntree=500,
+  #  mtry= 3,
+  #  sampsize= 500,
+  localImp= TRUE, 
+  keep.forest= TRUE, 
+  keep.inbag= TRUE
+)
+
+rf_full$oob.times
+
+#imp_full<- permimp::permimp(rf_full, conditional = T, do_check = FALSE)
+imp_full<- readRDS("results/permutationImpFullData.rds")
 
 
 
@@ -126,7 +155,8 @@ imp3<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .5, do_check =
 
 permimp::plot.VarImp(imp, type = "bar") # use "box"
 
-v_imp_inc<- cbind(imp$values)
+#v_imp_inc<- cbind(imp$values) commented since we are now taking the scores from the full mode
+v_imp_inc<- cbind(imp_full$values)
 rownames(v_imp_inc)<- c("Water Improved", "Water Piped", "Water Surface", "Water Unimproved", "Sanitation Improved", "Open Defecation", "Sanitation Piped", "Sanitation Unimproved")
 v_imp_inc<- cbind(rownames(v_imp_inc), v_imp_inc)
 v_imp_inc<- as.data.frame(v_imp_inc)
@@ -172,7 +202,8 @@ mean_impurity_decrease <-
     #plot.background = element_rect(color = "White"),
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y =  element_blank()
-  )
+  )+ 
+  scale_x_continuous(position = "top")
 
 plot3<- main1+annotation_custom(ggplotGrob(mean_impurity_decrease), xmin = -1.4 , xmax = 3.5, ymin = -Inf, ymax = 0)
 
@@ -237,7 +268,7 @@ full.hotspot.data$Predicted<- as.numeric(as.character(full.hotspot.data$Predicte
 full.hotspot.data$Observed<- as.numeric(as.character(full.hotspot.data$Observed))
 
 
-## AUC  
+## AUC  for model 9
 for (i in 1:10) {
   print( paste0("model", i,": ",
                 auc(rf.list.h[[i]]$testdata$hotspot , rf.list.h[[i]]$pred.newdata.vote[,1], quiet= T)
@@ -246,6 +277,10 @@ for (i in 1:10) {
 
 #95% CI of AUC
 ci.auc(auc(rf.list.h[[9]]$testdata$hotspot , rf.list.h[[9]]$pred.newdata.vote[,1]))
+
+
+
+
 
 
 ## model failed to detect % of hotspots
@@ -259,6 +294,45 @@ table(rf.list.h[[9]]$predicted)
 table(rf.list.h[[9]]$y)
 1/1726*100 # falsely detected o.06% of hotsports
 31/1726*100 #failed to detect 1.8% hotspots
+
+
+
+# --------------- hotspot full model ------------------
+
+rf_hp_full<- randomForest(
+  hotspot~.,
+  data = hotspot_df,
+  ntree=500,
+  localImp= TRUE, 
+  keep.forest= TRUE, 
+  keep.inbag= TRUE
+)
+
+
+rf_hp_full.df<- data.frame(Predicted.f= rf_hp_full$predicted, Observed.f= rf_hp_full$y, vote.0.f= rf_hp_full$votes[,1], vote.1.f= rf_hp_full$votes[,2])
+
+#imp.h_full<- permimp::permimp(rf_hp_full, conditional = T, do_check = FALSE)
+imp.h_full<- readRDS("results/permutationImpFullData_hotspot.rds")
+
+## AUC  for full data model
+auc(rf_hp_full$y , rf_hp_full$votes[,1], quiet= T)
+
+#95% CI of AUC
+ci.auc(auc(rf_hp_full$y , rf_hp_full$votes[,1], quiet= T))
+
+#confussion 
+rf_hp_full$confusion
+table(rf_hp_full$predicted)
+table(rf_hp_full$y)
+5/3685*100 # falsely detected % of hotsports
+252/257*100 #failed to detect 1.8% hotspots
+
+#### combining the two data frames for hte ROC plot
+combined_df_hp<- data.frame(full.hotspot.data, rf_hp_full.df)
+### to make sure combined_df_hp$Observed!=combined_df_hp$Observed.f to use in the main2 plot 
+sum(combined_df_hp$Observed!=combined_df_hp$Observed.f)
+
+
 
 
 # variable importance
@@ -275,7 +349,8 @@ imp.h3<- permimp::permimp(rf.list.h[[9]], conditional = T, threshold= .5,do_chec
 
 
 
-v_imp_hp<- cbind(imp.h$values)
+# v_imp_hp<- cbind(imp.h$values) commented since we are using full data model now 12/28/2021
+v_imp_hp<- cbind(imp.h_full$values)
 rownames(v_imp_hp)<- c("Water Improved", "Water Piped", "Water Surface", "Water Unimproved", "Sanitation Improved", "Open Defecation", "Sanitation Piped", "Sanitation Unimproved")
 v_imp_hp<- cbind(rownames(v_imp_hp), v_imp_hp)
 v_imp_hp<- as.data.frame(v_imp_hp)
@@ -341,8 +416,9 @@ v_imp_hp$mean_accuracy_decrease<- as.numeric(v_imp_hp$mean_accuracy_decrease)
 
 # ---------------------
 
-main2<- ggplot(data=full.hotspot.data, aes(m= vote.1, d= Observed, color= cv.number))+ 
-  geom_roc(n.cuts=0, linealpha = .5) + 
+main2<- ggplot(data=combined_df_hp)+ 
+  geom_roc(aes(m= vote.1, d= Observed, color= cv.number), n.cuts=0, linealpha = .3) + 
+  geom_roc(aes(m= vote.1.f, d= Observed), n.cuts=0, linealpha = 1) + 
   coord_equal()+
   theme(legend.position = 'none')+
   scale_color_tableau()+ 
@@ -378,7 +454,8 @@ mean_impurity_decrease.hp <-
     #plot.background = element_rect(color = "White"),
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y =  element_blank()
-  )
+  )+ 
+  scale_x_continuous(position = "top")
 
 plot4<- main2+annotation_custom(ggplotGrob(mean_impurity_decrease.hp), xmin = .3 , xmax = 1.5, ymin = -.2, ymax = .7)
 
@@ -430,3 +507,6 @@ ggplot(data=full.hotspot.data, aes(m= vote.1, d= Observed, color= cv.number))+
            cutoffs.at = c(.145), # this is the discrimination threshold 
            cutoff.labels = "FPR= 0.40,     \nTPR= 0.85      ", # from sensetivity(.145) and 1- specificity(.145)
            pointsize = 1, labelsize = 2)
+
+
+save.image("Dec31_2021.RData")
