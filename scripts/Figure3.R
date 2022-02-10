@@ -9,13 +9,13 @@ main1<- ggplot(data= full.incidence.data, aes(Predicted, Observed))+
   scale_y_continuous(limits = c(-5, 2), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "left")+
   geom_abline(slope = 1, size= 1, alpha= .5, color= '#a44a3f')+labs(x= "Predicted mean annual incidence", y= "Observed mean annual incidence")+ 
   #annotate("text", x= -4, y= 0, label= "atop (italic(R) ^ 2 == ??0.32, RMSE == ??0.95, MAE== ??0.76)", parse = TRUE, size = 2)+ 
-  coord_equal()#+ scale_color_tableau(palette = "Tableau 10")#scale_color_viridis(discrete=TRUE) 
+  coord_equal() + ggtitle("A")#+ scale_color_tableau(palette = "Tableau 10")#scale_color_viridis(discrete=TRUE) 
 
 mean_impurity_decrease <-
   ggplot(data = v_imp_inc,aes( mean_accuracy_decrease, reorder(var, mean_accuracy_decrease), fill = var)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = c("#264653", "#2a9d8f", "#F16745", "#FFC65D", "#f4a261", "#4CC3D9", "#93648D", "#457b9d" )) +
-  labs(y = NULL, x = "Conditional permutation \nimportance") + theme(
+  labs(y = NULL, x = "Conditional permutation \nimportance (incidence)") + theme(
     legend.title = element_blank(),
     legend.position = 'none',
     axis.text.y = element_text(size = 8), 
@@ -64,7 +64,7 @@ main2<- ggplot(data = combined_df_hp)+
         panel.grid = element_line(linetype = 3, size = .5), 
         panel.grid.minor = element_blank(), plot.margin = unit(c(1, 1, 1, 1), 'pt'))+
   scale_color_grey(end= 0)+ 
-  labs(x= "False positive rate", y= "True positive rate")
+  labs(x= "False positive rate", y= "True positive rate")+ ggtitle("B")
 
 
 
@@ -73,7 +73,7 @@ mean_impurity_decrease.hp <-
   ggplot(data = v_imp_hp, aes(mean_accuracy_decrease, reorder(var, mean_accuracy_decrease), fill = var)) +
   geom_bar(stat = "identity") +
   scale_fill_manual( values = c("#264653","#2a9d8f","#F16745","#FFC65D","#f4a261","#4CC3D9","#93648D","#457b9d")) + 
-  labs(y = NULL, x = "Conditional permutation \nimportance") + theme(
+  labs(y = NULL, x = "Conditional permutation \nimportance (hotspot)") + theme(
     legend.title = element_blank(),
     legend.position = 'none',
     axis.text.y = element_text(size = 8), 
