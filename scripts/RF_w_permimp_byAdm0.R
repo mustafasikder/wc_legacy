@@ -11,6 +11,7 @@ library(data.table)
 library(viridis)
 library(ggthemes)
 library()
+library(gridExtra)
 
 theme_set(theme_minimal())
 theme_update(legend.position = "bottom")
@@ -171,14 +172,14 @@ v_imp_inc$mean_accuracy_decrease<- as.numeric(v_imp_inc$mean_accuracy_decrease)
 
 
 
-main1<- ggplot(data= full.incidence.data, aes(Predicted, Observed, color= cv.number))+ 
-  geom_point(size= .5, alpha= .5)+
+main1<- ggplot(data= full.incidence.data, aes(Predicted, Observed))+ 
+  geom_point(size= .5, alpha= .5, color= 'grey40')+
   theme(legend.position = "none", panel.grid = element_line(linetype = 3, size = .5))+#, aspect.ratio = 1)+
   scale_x_continuous(limits = c(-5, 3), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "bottom")+
   scale_y_continuous(limits = c(-5, 2), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "left")+
   geom_abline(slope = 1, size= 1, alpha= .5, color= '#a44a3f')+labs(x= "Predicted mean annual incidence", y= "Observed mean annual incidence")+ 
   annotate("text", x= 1, y= 0, label= "atop (italic(R) ^ 2 == ??0.32, RMSE == ??0.95, MAE== ??0.76)", parse = TRUE, size = 2)+ 
-  coord_equal()+ scale_color_tableau(palette = "Tableau 10")#scale_color_viridis(discrete=TRUE) 
+  coord_equal()#+ scale_color_tableau(palette = "Tableau 10")#scale_color_viridis(discrete=TRUE) 
 
 mean_impurity_decrease <-
   ggplot(data = v_imp_inc,
@@ -206,8 +207,8 @@ mean_impurity_decrease <-
     axis.title.x = element_text(size= 8),
     axis.text.x = element_text(size = 6),
     #plot.background = element_rect(color = "White"),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y =  element_blank()
+    panel.grid.major = element_blank(),
+    panel.grid.minor =  element_blank()
   )+ 
   scale_x_continuous(position = "top")
 
@@ -435,7 +436,8 @@ main2<- ggplot(data=combined_df_hp)+
   geom_roc(aes(m= vote.1.f, d= Observed), n.cuts=0, linealpha = 1) + 
   coord_equal()+
   theme(legend.position = 'none')+
-  scale_color_tableau()+ 
+  scale_color_grey(end= 0) +
+  #scale_color_tableau()+ 
   # scale_color_viridis_d()+
   labs(x= "False positive rate", y= "True positive rate")
 
@@ -466,8 +468,8 @@ mean_impurity_decrease.hp <-
     axis.title.x = element_text(size= 8),
     axis.text.x = element_text(size = 6),
     #plot.background = element_rect(color = "White"),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y =  element_blank()
+    panel.grid.major = element_blank(),
+    panel.grid.minor =  element_blank()
   )+ 
   scale_x_continuous(position = "top")
 
