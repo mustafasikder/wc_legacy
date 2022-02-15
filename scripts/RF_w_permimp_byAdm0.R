@@ -76,10 +76,26 @@ for(i in 1:nrow(adm0)){
 }
 
 # get rmse
-for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+for (i in 1:40) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
 # combined rmse
-for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
-(sum(unlist(lapply(rf.list, function(x) (x$rmse)^2)))/10)^.5
+for (i in 1:40) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+(sum(unlist(lapply(rf.list, function(x) (x$rmse)^2)))/40)^.5
+# Bootstrap for cvRMSE with 95% cI
+
+cvRMSE<- data.frame()
+for (i in 1:40) {
+  cvRMSE<- rbind(cvRMSE, cbind(m_id= paste0("model", i), rmse= rf.list[[i]]$rmse))
+}
+cvRMSE$rmse<- as.numeric(cvRMSE$rmse)
+fc<- function(d, i){
+  d2<- d[i, ]
+  return((mean((d2$rmse)^2))^.5)
+}
+
+boot.ci(boot(cvRMSE, statistic=fc, R=5000), conf=0.95, type="bca")
+
+
+
 
 # Spearman's rho in training data
 # cor.test(rf.list[[6]]$predicted, rf.list[[6]]$y, method = "spearman")
@@ -150,15 +166,15 @@ imp_full<- readRDS("results/permutationImpFullData.rds")
 
 # Conditional Permutation Importance
 # need testData to be same as the lowest RMSE model data
-i<- 6 #assign i to the model # that has smallest RMSE from for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
-folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
-testIndexes <- which(folds==i,arr.ind=TRUE)
-testData <- cv_df[testIndexes, ]
-trainData <- cv_df[-testIndexes, ]
-imp<- permimp::permimp(rf.list[[6]], conditional = T, do_check = FALSE)
-# testing threshold value
-imp2<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .8, do_check = FALSE)
-imp3<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .5, do_check = FALSE)
+# i<- 6 #assign i to the model # that has smallest RMSE from for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+# folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
+# testIndexes <- which(folds==i,arr.ind=TRUE)
+# testData <- cv_df[testIndexes, ]
+# trainData <- cv_df[-testIndexes, ]
+# imp<- permimp::permimp(rf.list[[6]], conditional = T, do_check = FALSE)
+# # testing threshold value
+# imp2<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .8, do_check = FALSE)
+# imp3<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .5, do_check = FALSE)
 
 permimp::plot.VarImp(imp, type = "bar") # use "box"
 
@@ -290,11 +306,6 @@ for (i in 1:10) {
                 ))
 }
 
-#95% CI of AUC
-ci.auc(auc(rf.list.h[[9]]$testdata$hotspot , rf.list.h[[9]]$pred.newdata.vote[,1]))
-
-
-
 
 
 
@@ -309,6 +320,28 @@ table(rf.list.h[[9]]$predicted)
 table(rf.list.h[[9]]$y)
 1/1726*100 # falsely detected o.06% of hotsports
 31/1726*100 #failed to detect 1.8% hotspots
+
+
+### Bootstrap for cvACU and 95% CI
+actual<- data.table()
+predicted<- data.table()
+for (i in 1:nrow(adm0)){
+  actual<- rbind(actual, rf.list.h[[i]]$testdata$hotspot)
+  predicted<- rbind(predicted, rf.list.h[[i]]$pred.newdata.vote[,2])
+}
+
+auc(as.factor(actual$x), predicted$x)
+
+
+# Bootstrap for cvAUC for 95% CI
+auc_data<- data.frame(actual= as.factor(actual$x), predicted= predicted$x)
+
+fc<- function(d, i){
+  d2<- d[i,]
+  return(auc(d2$actual, d2$predicted))
+}
+cvAUC<- boot(auc_data, statistic=fc, R=5000)
+boot.ci(cvAUC, conf=0.95, type="bca")
 
 
 
