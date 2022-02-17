@@ -53,6 +53,11 @@ summary(glm(total_cases.int~W_Uni, data = ctry_p, family = "quasipoisson", offse
 summary(glm(total_cases.int~S_Uni, data = ctry_p, family = "quasipoisson", offset = log(mean_pop_sum)))
 summary(glm(total_cases.int~S_OD, data = ctry_p, family = "quasipoisson", offset = log(mean_pop_sum)))
 
+# Poisson dispersion
+w_imp_poisson_c<- glm(total_cases.int~W_Imp, data = ctry_p, family = "poisson", offset = log(mean_pop_sum))
+dispersiontest(w_imp_poisson_c)
+
+
 convert_to_CI<- function(est, stde){
   e<- round((1- exp(est))*100, 2)
   ci<- c(round((1-exp(est - 1.96*stde))*100, 2), round((1- exp(est + 1.96*stde))*100, 2))
@@ -120,6 +125,10 @@ dist_p<- subset(dist_p, select= -geometry)
 dist_p<- merge(dist_p, dist_df, by= "NAME_2")
 dist_p$total_cases.int<- as.integer(dist_p$total_cases)
 dist_p$mean_pop_sum<- dist_p$mean_pop_sum+0.5
+
+## Poisson dispersion
+w_imp_poisson_d<- glm(total_cases.int~W_Imp, data = dist_p, family = "poisson", offset = log(mean_pop_sum))
+dispersiontest(w_imp_poisson_d)
 
 
 
