@@ -209,5 +209,5 @@ fig_s1<- gridExtra::grid.arrange(mean_impurity_decrease_gbm,
 ggsave("X:/Spatial Stat/WASH Cholera/clean_repo/results/Figure_S1.jpeg", plot= fig_s1, width = 6.0, height = 2.5, units = "in", dpi= 500)
 
 
-
+save.image("rf_and_brt_results.RData")
 
