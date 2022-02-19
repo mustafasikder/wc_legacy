@@ -126,6 +126,9 @@ dist_p<- merge(dist_p, dist_df, by= "NAME_2")
 dist_p$total_cases.int<- as.integer(dist_p$total_cases)
 dist_p$mean_pop_sum<- dist_p$mean_pop_sum+0.5
 
+saveRDS(dist_p, file = "X:/Spatial Stat/WASH Cholera/clean_repo/results/dist_p.RDS")
+dist_p<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/dist_p.RDS")
+
 ## Poisson dispersion
 w_imp_poisson_d<- glm(total_cases.int~W_Imp, data = dist_p, family = "poisson", offset = log(mean_pop_sum))
 dispersiontest(w_imp_poisson_d)

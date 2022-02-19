@@ -1,5 +1,4 @@
-#setwd("X:/Spatial Stat/WASH Cholera/new_data")
-#rm(list= ls())
+rm(list= ls())
 setwd("X:/Spatial Stat/WASH Cholera/clean_repo") # will change to this repo once the script is clean
 
 library(randomForest)
@@ -23,229 +22,228 @@ options(digits=2)
 
 
 dist_df<- readRDS("results/dist_df.rds")
-dist_df$log_incidence<- log10(dist_df$incidence_in_thousan)
-# colnames(dist_df)[10:17]<- c("Improved Water",  
-#                              "Piped Water",  
-#                              "Surface Water", 
-#                              "Unimproved Water", 
-#                              "Improved Sanitation",
-#                              "Open Defecation",
-#                              "Piped Sanitation", 
-#                              "Unimproved Sanitation")
-
-dist_df<- dist_df[complete.cases(dist_df), ]
-
-###############################################################################
-################ incidence model with 10 fold cross-validation ################
-###############################################################################
-# from https://stats.stackexchange.com/questions/61090/how-to-split-a-data-set-to-do-10-fold-cross-validation
-# *** Note: CV model used to report cvRMSE and Spearman rho ***
-
-
-dist_dt<- as.data.table(dist_df)
-adm0<- dist_dt[,.N,by= NAME_0]
-
-folds2<- rep(1:nrow(adm0), adm0$N)
-cv_df<- dist_df[,c(10:17, 21)]
-
-# incidence_df<- dist_df[,c(10:17, 21)]
-# set.seed(123)
-# cv_df<- incidence_df[sample(nrow(incidence_df)),]
-# folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
-
-test.list<- list()
-train.list<- list()
-rf.list<- list()
-
-for(i in 1:nrow(adm0)){
-  testIndexes <- which(folds2==i,arr.ind=TRUE)
-  testData <- cv_df[testIndexes, ]
-  trainData <- cv_df[-testIndexes, ]
-  rf<- randomForest(
-    log_incidence~.,
-    data = trainData,
-    ntree=500,
-    #  mtry= 3,
-    #  sampsize= 500,
-    localImp= TRUE, 
-    keep.forest= TRUE, 
-    keep.inbag= TRUE
-    )
-  rf.list[[i]]<- rf
-  rf.list[[i]]$pred.newdata<- predict(rf, newdata = testData)
-  rf.list[[i]]$testdata<- testData
-  rf.list[[i]]$rmse<- mean((predict(rf, newdata = testData)-testData$log_incidence)^2)^0.5
-  rf.list[[i]]$perImp<- permimp::permimp(rf.list[[i]], conditional = T, do_check = FALSE)
-}
-
-# get rmse
-for (i in 1:40) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
-# combined rmse
-for (i in 1:40) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
-(sum(unlist(lapply(rf.list, function(x) (x$rmse)^2)))/40)^.5
-# Bootstrap for cvRMSE with 95% cI
-
-cvRMSE<- data.frame()
-for (i in 1:40) {
-  cvRMSE<- rbind(cvRMSE, cbind(m_id= paste0("model", i), rmse= rf.list[[i]]$rmse))
-}
-cvRMSE$rmse<- as.numeric(cvRMSE$rmse)
-fc<- function(d, i){
-  d2<- d[i, ]
-  return((mean((d2$rmse)^2))^.5)
-}
-
-boot.ci(boot(cvRMSE, statistic=fc, R=5000), conf=0.95, type="bca")
-
-
-
-
-# Spearman's rho in training data
-# cor.test(rf.list[[6]]$predicted, rf.list[[6]]$y, method = "spearman")
-
-# Spearman's rho in test data
-# cor.test(rf.list[[6]]$pred.newdata, rf.list[[6]]$testdata$log_incidence, method = "spearman")
-# to get the Spearman's rho for the full data
-all.pred<- cbind(unlist(lapply(rf.list, function(x) x$pred.newdata)))
-all.log_incidence<- cbind(unlist(lapply(rf.list, function(x) x$testdata$log_incidence)))
-
-pred_inc<- lapply(rf.list, function(x) cbind("pred"=x$pred.newdata, "incidence"= x$testdata$log_incidence))
-pred_inc_mat<- do.call(rbind, pred_inc)
-cor.test(pred_inc_mat[,1], pred_inc_mat[,2], method = "spearman")
-
-# permutation variable importance 
-perImp<- t(rbind(sapply(rf.list, function(x) x$perImp$values)))
-fwrite(perImp, file= "results/IncidencePermutationImportance10Fold.csv")
-
-
-
-incidence_predict<- data.table()
-full.incidence.data<- data.table()
-for (i in 1:length(rf.list)){
-  incidence_predict<- data.table() # since the lengths are different 
-  temp<- incidence_predict[ , c("cv.number", "Predicted", "Observed") := 
-                              list(rep(paste0("cv.", i), length(rf.list[[i]]$pred.newdata)), 
-                                   rf.list[[i]]$pred.newdata, rf.list[[i]]$testdata$log_incidence),]
-  full.incidence.data<- rbind(full.incidence.data, temp)
-}
-
-
-# ----------------- Incidence data full model ----------------
-# *** Note: full data model used to produce 1) plot 3A (scatter plot) and 2) variable permutation importance + Fig 3A (importance bar plot) ***
-
-rf_full<- randomForest(
-  log_incidence~.,
-  data = incidence_df,
-  ntree=500,
-  #  mtry= 3,
-  #  sampsize= 500,
-  localImp= TRUE, 
-  keep.forest= TRUE, 
-  keep.inbag= TRUE
-)
-
-rf_full$oob.times
-
-#imp_full<- permimp::permimp(rf_full, conditional = T, do_check = FALSE)
-imp_full<- readRDS("results/permutationImpFullData.rds")
-
-
-
-# ----------------- Random forest with incidence data --------
-# rf_fit_randomforest<- randomForest(
+# dist_df$log_incidence<- log10(dist_df$incidence_in_thousan)
+# # colnames(dist_df)[10:17]<- c("Improved Water",  
+# #                              "Piped Water",  
+# #                              "Surface Water", 
+# #                              "Unimproved Water", 
+# #                              "Improved Sanitation",
+# #                              "Open Defecation",
+# #                              "Piped Sanitation", 
+# #                              "Unimproved Sanitation")
+# 
+# dist_df<- dist_df[complete.cases(dist_df), ]
+# 
+# ###############################################################################
+# ################ incidence model with 10 fold cross-validation ################
+# ###############################################################################
+# # from https://stats.stackexchange.com/questions/61090/how-to-split-a-data-set-to-do-10-fold-cross-validation
+# # *** Note: CV model used to report cvRMSE and Spearman rho ***
+# 
+# 
+# dist_dt<- as.data.table(dist_df)
+# adm0<- dist_dt[,.N,by= NAME_0]
+# 
+# folds2<- rep(1:nrow(adm0), adm0$N)
+# cv_df<- dist_df[,c(10:17, 21)]
+# 
+# # incidence_df<- dist_df[,c(10:17, 21)]
+# # set.seed(123)
+# # cv_df<- incidence_df[sample(nrow(incidence_df)),]
+# # folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
+# 
+# test.list<- list()
+# train.list<- list()
+# rf.list<- list()
+# 
+# for(i in 1:nrow(adm0)){
+#   testIndexes <- which(folds2==i,arr.ind=TRUE)
+#   testData <- cv_df[testIndexes, ]
+#   trainData <- cv_df[-testIndexes, ]
+#   rf<- randomForest(
+#     log_incidence~.,
+#     data = trainData,
+#     ntree=500,
+#     #  mtry= 3,
+#     #  sampsize= 500,
+#     localImp= TRUE, 
+#     keep.forest= TRUE, 
+#     keep.inbag= TRUE
+#     )
+#   rf.list[[i]]<- rf
+#   rf.list[[i]]$pred.newdata<- predict(rf, newdata = testData)
+#   rf.list[[i]]$testdata<- testData
+#   rf.list[[i]]$rmse<- mean((predict(rf, newdata = testData)-testData$log_incidence)^2)^0.5
+#   rf.list[[i]]$perImp<- permimp::permimp(rf.list[[i]], conditional = T, do_check = FALSE)
+# }
+# 
+# # get rmse
+# for (i in 1:40) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+# # combined rmse
+# for (i in 1:40) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+# (sum(unlist(lapply(rf.list, function(x) (x$rmse)^2)))/40)^.5
+# # Bootstrap for cvRMSE with 95% cI
+# 
+# cvRMSE<- data.frame()
+# for (i in 1:40) {
+#   cvRMSE<- rbind(cvRMSE, cbind(m_id= paste0("model", i), rmse= rf.list[[i]]$rmse))
+# }
+# cvRMSE$rmse<- as.numeric(cvRMSE$rmse)
+# fc<- function(d, i){
+#   d2<- d[i, ]
+#   return((mean((d2$rmse)^2))^.5)
+# }
+# 
+# boot.ci(boot(cvRMSE, statistic=fc, R=5000), conf=0.95, type="bca")
+# 
+# 
+# 
+# 
+# # Spearman's rho in training data
+# # cor.test(rf.list[[6]]$predicted, rf.list[[6]]$y, method = "spearman")
+# 
+# # Spearman's rho in test data
+# # cor.test(rf.list[[6]]$pred.newdata, rf.list[[6]]$testdata$log_incidence, method = "spearman")
+# # to get the Spearman's rho for the full data
+# all.pred<- cbind(unlist(lapply(rf.list, function(x) x$pred.newdata)))
+# all.log_incidence<- cbind(unlist(lapply(rf.list, function(x) x$testdata$log_incidence)))
+# 
+# pred_inc<- lapply(rf.list, function(x) cbind("pred"=x$pred.newdata, "incidence"= x$testdata$log_incidence))
+# pred_inc_mat<- do.call(rbind, pred_inc)
+# cor.test(pred_inc_mat[,1], pred_inc_mat[,2], method = "spearman")
+# 
+# # permutation variable importance 
+# perImp<- t(rbind(sapply(rf.list, function(x) x$perImp$values)))
+# fwrite(perImp, file= "results/IncidencePermutationImportance10Fold.csv")
+# 
+# 
+# 
+# incidence_predict<- data.table()
+# full.incidence.data<- data.table()
+# for (i in 1:length(rf.list)){
+#   incidence_predict<- data.table() # since the lengths are different 
+#   temp<- incidence_predict[ , c("cv.number", "Predicted", "Observed") := 
+#                               list(rep(paste0("cv.", i), length(rf.list[[i]]$pred.newdata)), 
+#                                    rf.list[[i]]$pred.newdata, rf.list[[i]]$testdata$log_incidence),]
+#   full.incidence.data<- rbind(full.incidence.data, temp)
+# }
+# 
+# 
+# # ----------------- Incidence data full model ----------------
+# # *** Note: full data model used to produce 1) plot 3A (scatter plot) and 2) variable permutation importance + Fig 3A (importance bar plot) ***
+# 
+# rf_full<- randomForest(
 #   log_incidence~.,
-#   data = model_df,
+#   data = incidence_df,
 #   ntree=500,
-# #  mtry= 3,
-#   #sampsize= 500,
+#   #  mtry= 3,
+#   #  sampsize= 500,
 #   localImp= TRUE, 
 #   keep.forest= TRUE, 
 #   keep.inbag= TRUE
 # )
-
-# RMSE
-# rmse<- sqrt(mean((rf_fit_randomforest$y - rf_fit_randomforest$predicted)^2))
-
-# rf_df<- as.data.frame(cbind("Predicted"=rf_fit_randomforest$predicted, "Observed"=rf_fit_randomforest$y))
-
-# Conditional Permutation Importance
-# need testData to be same as the lowest RMSE model data
-# i<- 6 #assign i to the model # that has smallest RMSE from for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
-# folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
-# testIndexes <- which(folds==i,arr.ind=TRUE)
-# testData <- cv_df[testIndexes, ]
-# trainData <- cv_df[-testIndexes, ]
-# imp<- permimp::permimp(rf.list[[6]], conditional = T, do_check = FALSE)
-# # testing threshold value
-# imp2<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .8, do_check = FALSE)
-# imp3<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .5, do_check = FALSE)
-
-permimp::plot.VarImp(imp, type = "bar") # use "box"
-
-#v_imp_inc<- cbind(imp$values) commented since we are now taking the scores from the full mode
-v_imp_inc<- cbind(imp_full$values)
-rownames(v_imp_inc)<- c("Water Improved", "Water Piped", "Water Surface", "Water Unimproved", "Sanitation Improved", "Open Defecation", "Sanitation Piped", "Sanitation Unimproved")
-v_imp_inc<- cbind(rownames(v_imp_inc), v_imp_inc)
-v_imp_inc<- as.data.frame(v_imp_inc)
-names(v_imp_inc)<- c("var", 'mean_accuracy_decrease')
-v_imp_inc$mean_accuracy_decrease<- as.numeric(v_imp_inc$mean_accuracy_decrease)
-
-
-
-main1<- ggplot(data= full.incidence.data, aes(Predicted, Observed))+ 
-  geom_point(size= .5, alpha= .5, color= 'grey40')+
-  theme(legend.position = "none", panel.grid = element_line(linetype = 3, size = .5))+#, aspect.ratio = 1)+
-  scale_x_continuous(limits = c(-5, 3), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "bottom")+
-  scale_y_continuous(limits = c(-5, 2), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "left")+
-  geom_abline(slope = 1, size= 1, alpha= .5, color= '#a44a3f')+labs(x= "Predicted mean annual incidence", y= "Observed mean annual incidence")+ 
-  annotate("text", x= 1, y= 0, label= "atop (italic(R) ^ 2 == ??0.32, RMSE == ??0.95, MAE== ??0.76)", parse = TRUE, size = 2)+ 
-  coord_equal()#+ scale_color_tableau(palette = "Tableau 10")#scale_color_viridis(discrete=TRUE) 
-
-mean_impurity_decrease <-
-  ggplot(data = v_imp_inc,
-         aes(
-           mean_accuracy_decrease,
-           reorder(var, mean_accuracy_decrease),
-           fill = var
-         )) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(
-    values = c(
-      "#264653",
-      "#2a9d8f",
-      "#F16745",
-      "#FFC65D",
-      "#f4a261",
-      "#4CC3D9",
-      "#93648D",
-      "#457b9d"
-    )
-  ) + labs(y = NULL, x = "Conditional permutation importance") + theme(
-    legend.title = element_blank(),
-    legend.position = 'none',
-    axis.text.y = element_text(size = 8), 
-    axis.title.x = element_text(size= 8),
-    axis.text.x = element_text(size = 6),
-    #plot.background = element_rect(color = "White"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor =  element_blank()
-  )+ 
-  scale_x_continuous(position = "top")
-
-plot3<- main1+annotation_custom(ggplotGrob(mean_impurity_decrease), xmin = -1.4 , xmax = 3.5, ymin = -Inf, ymax = 0)
-
-
-
+# 
+# rf_full$oob.times
+# 
+# #imp_full<- permimp::permimp(rf_full, conditional = T, do_check = FALSE)
+# imp_full<- readRDS("results/permutationImpFullData.rds")
+# 
+# 
+# 
+# # ----------------- Random forest with incidence data --------
+# # rf_fit_randomforest<- randomForest(
+# #   log_incidence~.,
+# #   data = model_df,
+# #   ntree=500,
+# # #  mtry= 3,
+# #   #sampsize= 500,
+# #   localImp= TRUE, 
+# #   keep.forest= TRUE, 
+# #   keep.inbag= TRUE
+# # )
+# 
+# # RMSE
+# # rmse<- sqrt(mean((rf_fit_randomforest$y - rf_fit_randomforest$predicted)^2))
+# 
+# # rf_df<- as.data.frame(cbind("Predicted"=rf_fit_randomforest$predicted, "Observed"=rf_fit_randomforest$y))
+# 
+# # Conditional Permutation Importance
+# # need testData to be same as the lowest RMSE model data
+# # i<- 6 #assign i to the model # that has smallest RMSE from for (i in 1:10) {print( paste0("model", i,": ",rf.list[[i]]$rmse))}
+# # folds <- cut(seq(1,nrow(cv_df)),breaks=10,labels=FALSE)
+# # testIndexes <- which(folds==i,arr.ind=TRUE)
+# # testData <- cv_df[testIndexes, ]
+# # trainData <- cv_df[-testIndexes, ]
+# # imp<- permimp::permimp(rf.list[[6]], conditional = T, do_check = FALSE)
+# # # testing threshold value
+# # imp2<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .8, do_check = FALSE)
+# # imp3<- permimp::permimp(rf.list[[6]], conditional = T, threshold= .5, do_check = FALSE)
+# 
+# permimp::plot.VarImp(imp, type = "bar") # use "box"
+# 
+# #v_imp_inc<- cbind(imp$values) commented since we are now taking the scores from the full mode
+# v_imp_inc<- cbind(imp_full$values)
+# rownames(v_imp_inc)<- c("Water Improved", "Water Piped", "Water Surface", "Water Unimproved", "Sanitation Improved", "Open Defecation", "Sanitation Piped", "Sanitation Unimproved")
+# v_imp_inc<- cbind(rownames(v_imp_inc), v_imp_inc)
+# v_imp_inc<- as.data.frame(v_imp_inc)
+# names(v_imp_inc)<- c("var", 'mean_accuracy_decrease')
+# v_imp_inc$mean_accuracy_decrease<- as.numeric(v_imp_inc$mean_accuracy_decrease)
+# 
+# 
+# 
+# main1<- ggplot(data= full.incidence.data, aes(Predicted, Observed))+ 
+#   geom_point(size= .5, alpha= .5, color= 'grey40')+
+#   theme(legend.position = "none", panel.grid = element_line(linetype = 3, size = .5))+#, aspect.ratio = 1)+
+#   scale_x_continuous(limits = c(-5, 3), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "bottom")+
+#   scale_y_continuous(limits = c(-5, 2), breaks = c(-4, -2, 0, 2),labels = c("0.0001", "0.01", "0.0", "100"), position = "left")+
+#   geom_abline(slope = 1, size= 1, alpha= .5, color= '#a44a3f')+labs(x= "Predicted mean annual incidence", y= "Observed mean annual incidence")+ 
+#   annotate("text", x= 1, y= 0, label= "atop (italic(R) ^ 2 == ??0.32, RMSE == ??0.95, MAE== ??0.76)", parse = TRUE, size = 2)+ 
+#   coord_equal()#+ scale_color_tableau(palette = "Tableau 10")#scale_color_viridis(discrete=TRUE) 
+# 
+# mean_impurity_decrease <-
+#   ggplot(data = v_imp_inc,
+#          aes(
+#            mean_accuracy_decrease,
+#            reorder(var, mean_accuracy_decrease),
+#            fill = var
+#          )) +
+#   geom_bar(stat = "identity") +
+#   scale_fill_manual(
+#     values = c(
+#       "#264653",
+#       "#2a9d8f",
+#       "#F16745",
+#       "#FFC65D",
+#       "#f4a261",
+#       "#4CC3D9",
+#       "#93648D",
+#       "#457b9d"
+#     )
+#   ) + labs(y = NULL, x = "Conditional permutation importance") + theme(
+#     legend.title = element_blank(),
+#     legend.position = 'none',
+#     axis.text.y = element_text(size = 8), 
+#     axis.title.x = element_text(size= 8),
+#     axis.text.x = element_text(size = 6),
+#     #plot.background = element_rect(color = "White"),
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor =  element_blank()
+#   )+ 
+#   scale_x_continuous(position = "top")
+# 
+# plot3<- main1+annotation_custom(ggplotGrob(mean_impurity_decrease), xmin = -1.4 , xmax = 3.5, ymin = -Inf, ymax = 0)
+# 
+# 
+# 
 ########################################################################
 ### -------------------------- Hotspot ------------------------------###
 ########################################################################
 
-#hotspot_df<- dist_df[,c(10:17, 20)]
+hotspot_df<- dist_df[,c(10:17, 20)]
 dist_dt<- as.data.table(dist_df)
 adm0<- dist_dt[,.N,by= NAME_0]
 
 folds.h<- rep(1:nrow(adm0), adm0$N)
-hotspot_df<- dist_df[,c(10:17, 20)]
 
 
 
