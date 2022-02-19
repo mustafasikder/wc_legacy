@@ -20,6 +20,12 @@ for(i in threshold){
 }
 roc.dt<- round(roc.dt, 2)
 ggplotly(ggplot(data= roc.dt, aes(x= fpr, y= tpr, text= paste("cutoff:",i, "\nYouden's J:",j  )))+geom_line()+geom_point())
+# since 0;06 was the max youden matrix
+# so failed to detect
+1-rf_hp_full.dt[vote.1.f>.06 & Observed.f==1, .N]/p
+# falsely identified 
+rf_hp_full.dt[vote.1.f>.06 & Observed.f==0, .N]/n
 
-cutp<- cutpointr::cutpointr(rf_hp_full.df, Predicted.f, Observed.f)
+
+#cutp<- cutpointr::cutpointr(rf_hp_full.df, Predicted.f, Observed.f)
 
