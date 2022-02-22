@@ -283,6 +283,8 @@ for(i in 1:nrow(adm0)){
   rf.list.h[[i]]$conf.matrix<- table(testData$hotspot ,rf.list.h[[i]]$pred.newdata)
 }
 
+saveRDS(rf.list.h, "X:/Spatial Stat/WASH Cholera/clean_repo/results/rf.list.h.RDS")
+
 # data preparation for the plot RoC plot
 hotspot_predict<- data.table()
 full.hotspot.data<- data.table()
@@ -300,7 +302,8 @@ for (i in 1:length(rf.list.h)){
 full.hotspot.data$Predicted<- as.numeric(as.character(full.hotspot.data$Predicted))
 full.hotspot.data$Observed<- as.numeric(as.character(full.hotspot.data$Observed))
 
-
+saveRDS(full.hotspot.data, "X:/Spatial Stat/WASH Cholera/clean_repo/results/full.hotspot.data.RDS")
+full.hotspot.data<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/full.hotspot.data.RDS")
 
 
 
@@ -364,6 +367,13 @@ ci.auc(auc(rf_hp_full$y , rf_hp_full$votes[,1], quiet= T))
 
 #### combining the two data frames for hte ROC plot
 combined_df_hp<- data.frame(full.hotspot.data, rf_hp_full.df)
+combined_df_hp$Observed<- as.numeric(as.character(combined_df_hp$Observed))
+combined_df_hp$Observed.f<- as.numeric(as.character(combined_df_hp$Observed.f))
+combined_df_hp$Predicted<- as.numeric(as.character(combined_df_hp$Predicted))
+combined_df_hp$Predicted.f<- as.numeric(as.character(combined_df_hp$Predicted.f))
+
+saveRDS(combined_df_hp, "X:/Spatial Stat/WASH Cholera/clean_repo/results/combined_df_hp.RDS")
+combined_df_hp<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/combined_df_hp.RDS")
 ### to make sure combined_df_hp$Observed!=combined_df_hp$Observed.f to use in the main2 plot 
 sum(combined_df_hp$Observed!=combined_df_hp$Observed.f)
 
@@ -381,7 +391,8 @@ v_imp_hp<- cbind(rownames(v_imp_hp), v_imp_hp)
 v_imp_hp<- as.data.frame(v_imp_hp)
 names(v_imp_hp)<- c("var", 'mean_accuracy_decrease')
 v_imp_hp$mean_accuracy_decrease<- as.numeric(v_imp_hp$mean_accuracy_decrease)
-
+saveRDS(v_imp_hp, "X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_hp.RDS")
+v_imp_hp<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_hp.RDS")
 
 
 

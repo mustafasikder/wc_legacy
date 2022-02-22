@@ -138,8 +138,8 @@ for (i in 1:length(rf.list)){
                                    rf.list[[i]]$pred.newdata, rf.list[[i]]$testdata$log_incidence),]
   full.incidence.data<- rbind(full.incidence.data, temp)
 }
-
-
+saveRDS(full.incidence.data, "X:/Spatial Stat/WASH Cholera/clean_repo/results/full.incidence.data.RDS")
+full.incidence.data<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/full.incidence.data.RDS")
 # ----------------- Incidence data full model ----------------
 # *** Note: full data model used to produce 1) plot 3A (scatter plot) and 2) variable permutation importance + Fig 3A (importance bar plot) ***
 
@@ -199,6 +199,9 @@ v_imp_inc<- cbind(rownames(v_imp_inc), v_imp_inc)
 v_imp_inc<- as.data.frame(v_imp_inc)
 names(v_imp_inc)<- c("var", 'mean_accuracy_decrease')
 v_imp_inc$mean_accuracy_decrease<- as.numeric(v_imp_inc$mean_accuracy_decrease)
+
+saveRDS(v_imp_inc, "X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_inc.RDS")
+v_imp_inc<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_inc.RDS")
 
 
 

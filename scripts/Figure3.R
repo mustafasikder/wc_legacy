@@ -1,6 +1,20 @@
 library(gridExtra)
 
+theme_set(theme_minimal())
+theme_update(legend.position = "bottom")
+options(ggplot2.continuous.colour="viridis")
+options(ggplot2.continuous.fill = "viridis")
+
+
 load("X:/Spatial Stat/WASH Cholera/new_data/revised.model.results.RData", .GlobalEnv)
+
+### read prepared data
+full.incidence.data<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/full.incidence.data.RDS")
+v_imp_inc<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_inc.RDS")
+
+combined_df_hp<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/combined_df_hp.RDS")
+v_imp_hp<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_hp.RDS")
+
 
 main1<- ggplot(data= full.incidence.data, aes(Predicted, Observed))+ 
   geom_point(size= .5, alpha= .5, color= 'grey40')+
@@ -83,7 +97,7 @@ mean_impurity_decrease.hp <-
     panel.grid.major = element_blank(),
     panel.grid.minor =  element_blank(), 
     panel.grid.minor.x = element_blank())+ 
-  scale_x_continuous(position = "top", limits = c(min(v_imp_hp$mean_accuracy_decrease), max(v_imp_hp$mean_accuracy_decrease)), breaks = c(as.vector(summary(v_imp_hp$mean_accuracy_decrease)[c(1,3,6)])))
+  scale_x_continuous(position = "top", limits = c(0, max(v_imp_hp$mean_accuracy_decrease)), breaks = c(as.vector(summary(v_imp_hp$mean_accuracy_decrease)[c(1,3,6)])))
 
 
 plot4<- main2+annotation_custom(ggplotGrob(mean_impurity_decrease.hp), xmin = .49 , xmax = 1.35, ymin = 0, ymax = .75)
