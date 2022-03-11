@@ -211,3 +211,14 @@ ggsave("X:/Spatial Stat/WASH Cholera/clean_repo/results/Figure_S1.jpeg", plot= f
 
 save.image("rf_and_brt_results.RData")
 
+
+
+##############################################################################
+### ----------------- Hotspot model with District as fold ----------------####
+##############################################################################
+
+
+
+
+
+
