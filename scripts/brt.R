@@ -104,7 +104,6 @@ boot.ci(cvRMSE.mean, conf=0.95, type="bca")
 
 
 
-
 ##############################################################################
 ### ------------------- Hotspot model with full data -------------------####
 ##############################################################################
@@ -118,12 +117,23 @@ gbm.hp<- gbm(hotspot~.,
               distribution="bernoulli",  
               n.trees=500, 
               verbose=T)
+gbm.hp.full.pred<- predict.gbm(gbm.hp, hotspot_df, n.trees = 500, distribution="bernoulli", type= "response")
+
+
+gbm_hp_full.df<- data.frame(Observed.f= hotspot_df$hotspot, vote.1.f= gbm.hp.full.pred)
+saveRDS(gbm_hp_full.df, file = "X:/Spatial Stat/WASH Cholera/clean_repo/results/gbm_hp_full.df.RDS")
+gbm_hp_full.df<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/gbm_hp_full.df.RDS")
+
+
+
 
 ################## full model importance plot hotspot  ########################
 vip_full_hp<- vip(gbm.hp)
 v_imp_hp_gbm<- data.table(vip_full_hp$data)
 setorder(v_imp_hp_gbm, Variable)
 v_imp_hp_gbm$var<- c("Sanitation Improved", "Open Defecation", "Sanitation Piped", "Sanitation Unimproved", "Water Improved", "Water Piped", "Water Surface", "Water Unimproved")
+saveRDS(v_imp_hp_gbm, "X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_hp_gbm.RDS")
+v_imp_hp_gbm<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_hp_gbm.RDS")
 
 mean_impurity_decrease.hp.gbm <-
   ggplot(data = v_imp_hp_gbm, aes(Importance, reorder(var, Importance), fill = var)) +
@@ -141,7 +151,10 @@ mean_impurity_decrease.hp.gbm <-
     panel.grid.minor.x = element_blank())+ 
   scale_x_continuous(position = "top") #, limits = c(min(v_imp_hp$mean_accuracy_decrease), max(v_imp_hp$mean_accuracy_decrease)), breaks = c(as.vector(summary(v_imp_hp$mean_accuracy_decrease)[c(1,3,6)])))
 
-############### ADM0 as folds for cvRMSE - Incidence model ####################
+##############################################################################
+### ----------------- Hotspot model with District as fold ----------------####
+##############################################################################
+
 
 adm0<- dist_dt[,.N,by= NAME_0]
 folds.h<- rep(1:nrow(adm0), adm0$N)
@@ -169,7 +182,7 @@ for(i in 1:nrow(adm0)){
   )
   gbm.list.h[[i]]<- gbm.hp
   gbm.list.h[[i]]$pred.newdata<- predict(gbm.hp, newdata = testData)
-  gbm.list.h[[i]]$pred.newdata.vote<- predict(gbm.hp, newdata = testData)
+  gbm.list.h[[i]]$pred.newdata.vote<- predict(gbm.hp, newdata = testData, type= "response")
   gbm.list.h[[i]]$testdata<- testData
   gbm.list.h[[i]]$conf.matrix<- table(testData$hotspot ,gbm.list.h[[i]]$pred.newdata)
 }
@@ -178,8 +191,42 @@ for (i in 1:nrow(adm0)){
   print(table(gbm.list.h[[i]]$testdata$hotspot))
 }
 
+saveRDS(gbm.list.h, "X:/Spatial Stat/WASH Cholera/clean_repo/results/gbm.list.h.RDS")
+gbm.list.h<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/gbm.list.h.RDS")
 
 
+### --------- data preparation for the RoC plot (Fig 3) -------------------- ###
+## prepare data for ROC plot
+full.hotspot.data.gbm<- data.table()
+for (i in 1:length(gbm.list.h)){
+  hotspot_predict.gbm<- data.table() # since the lengths are different
+  temp<- hotspot_predict.gbm[ , c("cv.number", "Observed", "vote.1") := 
+                                list(rep(paste0("cv.", i), length(gbm.list.h[[i]]$pred.newdata)), 
+                                      
+                                     gbm.list.h[[i]]$testdata$hotspot, 
+                                     gbm.list.h[[i]]$pred.newdata.vote),]
+  full.hotspot.data.gbm<- rbind(full.hotspot.data.gbm, temp)
+}
+
+full.hotspot.data.gbm$Observed<- as.numeric(as.character(full.hotspot.data.gbm$Observed))
+
+saveRDS(full.hotspot.data.gbm, "X:/Spatial Stat/WASH Cholera/clean_repo/results/full.hotspot.data.gbm.RDS")
+full.hotspot.data.gbm<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/full.hotspot.data.gbm.RDS")
+
+##### combine the full model and cv model results for ROC plot
+
+combined_df_hp.gbm<- data.frame(full.hotspot.data.gbm, gbm_hp_full.df)
+combined_df_hp.gbm$Observed<- as.numeric(as.character(combined_df_hp.gbm$Observed))
+combined_df_hp.gbm$Observed.f<- as.numeric(as.character(combined_df_hp.gbm$Observed.f))
+
+saveRDS(combined_df_hp.gbm, "X:/Spatial Stat/WASH Cholera/clean_repo/results/combined_df_hp.gbm.RDS")
+combined_df_hp.gbm<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/combined_df_hp.gbm.RDS")
+
+
+
+
+
+############### ADM0 as folds for cvRMSE - hotspot model ####################
 
 actual<- data.table()
 predicted<- data.table()
@@ -212,10 +259,6 @@ ggsave("X:/Spatial Stat/WASH Cholera/clean_repo/results/Figure_S1.jpeg", plot= f
 save.image("rf_and_brt_results.RData")
 
 
-
-##############################################################################
-### ----------------- Hotspot model with District as fold ----------------####
-##############################################################################
 
 
 

@@ -22,6 +22,7 @@ options(digits=2)
 
 
 dist_df<- readRDS("results/dist_df.rds")
+############## 
 # dist_df$log_incidence<- log10(dist_df$incidence_in_thousan)
 # # colnames(dist_df)[10:17]<- c("Improved Water",  
 # #                              "Piped Water",  
@@ -32,7 +33,7 @@ dist_df<- readRDS("results/dist_df.rds")
 # #                              "Piped Sanitation", 
 # #                              "Unimproved Sanitation")
 # 
-# dist_df<- dist_df[complete.cases(dist_df), ]
+ dist_df<- dist_df[complete.cases(dist_df), ]
 # 
 # ###############################################################################
 # ################ incidence model with 10 fold cross-validation ################
@@ -365,7 +366,7 @@ auc(rf_hp_full$y , rf_hp_full$votes[,1], quiet= T)
 ci.auc(auc(rf_hp_full$y , rf_hp_full$votes[,1], quiet= T))
 
 
-#### combining the two data frames for hte ROC plot
+#### combining the full model and cv model  data frames for hte ROC plot
 combined_df_hp<- data.frame(full.hotspot.data, rf_hp_full.df)
 combined_df_hp$Observed<- as.numeric(as.character(combined_df_hp$Observed))
 combined_df_hp$Observed.f<- as.numeric(as.character(combined_df_hp$Observed.f))
