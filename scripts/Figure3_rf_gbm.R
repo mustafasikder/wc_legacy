@@ -61,7 +61,8 @@ main2.gbm<- ggplot(data = combined_df_hp.gbm)+
         panel.grid = element_line(linetype = 3, size = .5), 
         panel.grid.minor = element_blank(), plot.margin = unit(c(1, 1, 1, 1), 'pt'))+
   scale_color_grey(end= 0)+ 
-  labs(x= "False positive rate", y= "True positive rate")+ ggtitle("B")
+  labs(x= "False positive rate", y= "True positive rate")+ ggtitle("B")+ 
+  geom_abline(slope = 1, size= 1, alpha= .5, color= '#a44a3f')
 
 
 
@@ -87,10 +88,10 @@ plot4<- main2+annotation_custom(ggplotGrob(mean_impurity_decrease.hp), xmin = .4
 
 #plot3.v1<- ggpubr::ggarrange(plot3, plot4, ncol = 1, labels = c("A", "B"),  heights = c(1, 1))
 
-plot3.v1<- gridExtra::grid.arrange(main1,
+plot3.v1.hpGBM<- gridExtra::grid.arrange(main1,
                                    mean_impurity_decrease, 
-                                   main2, 
-                                   mean_impurity_decrease.hp, 
+                                   main2.gbm, 
+                                   mean_impurity_decrease.hp.gbm, 
                                    layout_matrix= rbind(
                                      c(1, 1, 1, 1, 1, 1, NA, NA, NA, NA), 
                                      c(1, 1, 1, 1, 1, 1, 2, 2, 2, 2),
@@ -105,5 +106,5 @@ plot3.v1<- gridExtra::grid.arrange(main1,
                                      c(3, 3, 3, 3, 3, 3, 4, 4, 4, 4), 
                                      c(3, 3, 3, 3, 3, 3, NA, NA, NA, NA)))
 
-ggsave("X:/Spatial Stat/WASH Cholera/clean_repo/results/Figure_3.jpeg", plot= plot3.v1, width = 6.5, height = 8, units = "in", dpi= 500)
+ggsave("X:/Spatial Stat/WASH Cholera/clean_repo/results/Figure_3_hpGBM.jpeg", plot= plot3.v1.hpGBM, width = 6.5, height = 8, units = "in", dpi= 500)
 

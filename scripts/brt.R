@@ -35,6 +35,10 @@ v_imp_inc_gbm<- data.table(vip_full$data)
 setorder(v_imp_inc_gbm, Variable)
 v_imp_inc_gbm$var<- c("Sanitation Improved", "Open Defecation", "Sanitation Piped", "Sanitation Unimproved", "Water Improved", "Water Piped", "Water Surface", "Water Unimproved")
 
+saveRDS(v_imp_inc_gbm, file = "X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_inc_gbm.RDS")
+v_imp_inc_gbm<- readRDS("X:/Spatial Stat/WASH Cholera/clean_repo/results/v_imp_inc_gbm.RDS")
+
+
 
 mean_impurity_decrease_gbm <-
   ggplot(data = v_imp_inc_gbm,aes( Importance, reorder(var, Importance), fill = var)) +
